@@ -114,22 +114,43 @@ namespace TiktokCekilisApp
                 var batch = await page.EvaluateAsync<CommentItem[]>(@"
 () => {
   const nodes = Array.from(document.querySelectorAll(
-    '[data-e2e=""comment-level-1""], [data-e2e=""comment-item""], [data-e2e=""comment-list""] [data-e2e=""comment-item""], [data-e2e=""comment-list""] div'
+    '[data-e2e=""comment-level-1""], [data-e2e=""comment-item""], [data-e2e=""comment-list""] [data-e2e=""comment-item""]'
   ));
+
   return nodes.map(n => {
-    const textEl =
-      n.querySelector('[data-e2e=""comment-content""]') ||
-      n.querySelector('span[data-e2e=""comment-text""]') ||
-      n.querySelector('p') ||
-      n;
-    const userEl =
+    const rawText =
+      n.querySelector('[data-e2e=""comment-content""]')?.innerText ||
+      n.querySelector('span[data-e2e=""comment-text""]')?.innerText ||
+      n.querySelector('p')?.innerText ||
+      n.innerText || '';
+
+    let user = '';
+    const userAnchor =
+      n.querySelector('a[href*=""/@""]') ||
       n.querySelector('a[href*=""@""]') ||
       n.querySelector('a[data-e2e*=""comment""]') ||
       n.querySelector('a');
-    const userText = userEl ? userEl.textContent.trim() : '';
+
+    if (userAnchor && userAnchor.textContent) {
+      user = userAnchor.textContent.trim().replace(/^@/, '');
+    }
+
+    if (!user) {
+      const match = rawText.match(/@([A-Za-z0-9._]+)/);
+      if (match) user = match[1];
+    }
+
+    let text = rawText.trim();
+    if (user) {
+      const userTag = '@' + user;
+      if (text.startsWith(userTag)) {
+        text = text.slice(userTag.length).trim();
+      }
+    }
+
     return {
-      text: textEl ? textEl.innerText.trim() : '',
-      user: userText.replace(/^@/, '')
+      text,
+      user
     };
   });
 }
