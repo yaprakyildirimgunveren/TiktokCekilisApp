@@ -14,6 +14,23 @@ namespace TiktokCekilisApp
             public string text { get; set; }
         }
 
+        private static async Task AnimateSelectionAsync(List<string> entries, int rounds, int delayMs)
+        {
+            if (entries.Count == 0)
+            {
+                return;
+            }
+
+            var rng = new Random();
+            for (int i = 0; i < rounds; i++)
+            {
+                var pick = entries[rng.Next(entries.Count)];
+                Console.Write($"\rSeciliyor... {pick.PadRight(80)}");
+                await Task.Delay(delayMs);
+            }
+            Console.WriteLine();
+        }
+
         static async Task Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -187,11 +204,24 @@ namespace TiktokCekilisApp
                     .ToList();
 
                 Console.WriteLine($"Tek hak katilimci sayisi: {users.Count}");
+                Console.WriteLine("Katilimci listesi:");
+                for (int i = 0; i < users.Count; i++)
+                {
+                    Console.WriteLine($"{i + 1}. @{users[i]}");
+                }
 
                 Console.Write("Kazanan secilsin mi? (E/H): ");
                 var pickInput = (Console.ReadLine() ?? string.Empty).Trim();
                 if (pickInput.Equals("E", StringComparison.OrdinalIgnoreCase) && users.Count > 0)
                 {
+                    Console.Write("Secim animasyonu gosterilsin mi? (E/H): ");
+                    var animInput = (Console.ReadLine() ?? string.Empty).Trim();
+                    if (animInput.Equals("E", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var entries = users.Select(u => "@" + u).ToList();
+                        await AnimateSelectionAsync(entries, rounds: 40, delayMs: 80);
+                    }
+
                     var rng = new Random();
                     var winner = users[rng.Next(users.Count)];
                     Console.WriteLine($"Kazanan: @{winner}");
@@ -200,16 +230,27 @@ namespace TiktokCekilisApp
             else
             {
                 Console.WriteLine("Katilimlar:");
-                foreach (var comment in validComments)
+                for (int i = 0; i < validComments.Count; i++)
                 {
+                    var comment = validComments[i];
                     var userLabel = string.IsNullOrWhiteSpace(comment.user) ? "unknown" : comment.user;
-                    Console.WriteLine($"@{userLabel}: {comment.text}");
+                    Console.WriteLine($"{i + 1}. @{userLabel}: {comment.text}");
                 }
 
                 Console.Write("Kazanan secilsin mi? (E/H): ");
                 var pickInput = (Console.ReadLine() ?? string.Empty).Trim();
                 if (pickInput.Equals("E", StringComparison.OrdinalIgnoreCase) && validComments.Count > 0)
                 {
+                    Console.Write("Secim animasyonu gosterilsin mi? (E/H): ");
+                    var animInput = (Console.ReadLine() ?? string.Empty).Trim();
+                    if (animInput.Equals("E", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var entries = validComments
+                            .Select(c => $"@{(string.IsNullOrWhiteSpace(c.user) ? "unknown" : c.user)}: {c.text}")
+                            .ToList();
+                        await AnimateSelectionAsync(entries, rounds: 40, delayMs: 80);
+                    }
+
                     var rng = new Random();
                     var winner = validComments[rng.Next(validComments.Count)];
                     var label = string.IsNullOrWhiteSpace(winner.user) ? "unknown" : winner.user;
@@ -217,6 +258,8 @@ namespace TiktokCekilisApp
                 }
             }
 
+            Console.WriteLine();
+            Console.WriteLine($"Sonuc Ozeti - Toplam cekilen yorum: {allComments.Count} | Gecerli (@) yorum: {validComments.Count}");
             Console.WriteLine();
             Console.WriteLine("Bitirdi. Cikmak icin Enter...");
             Console.ReadLine();
